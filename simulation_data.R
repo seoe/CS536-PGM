@@ -2,6 +2,7 @@
 # Author: Eugene Seo
 # Description: [ST562] Simulation data for N-mixture model
 
+library("unmarked")
 library("sigmoid")
 nSites <- 5 # number of total sites 
 nVisits <- 1 # number of total visits
