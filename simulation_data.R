@@ -8,9 +8,9 @@ library("sigmoid")
 nSites <- 50 # number of total sites 
 nVisits <- 1 # number of total visits
 nFeatures <- 10 # number of features (Assuming it's same for both habitat and detection probability)
-case <- 1 # experiment cases (1: z1 = w1, 2: z1 partially = w1, 3: z1 != w1)
+case <- 3 # experiment cases (1: z1 = w1, 2: z1 partially = w1, 3: z1 != w1)
 nRepeat <- 5
-cat("nSites:", nSites, "nVisits:", nVisits, "nFeatures:", nFeatures, "case:", case, "\n")
+cat("nSites:", nSites, "nVisits:", nVisits, "nFeatures:", nFeatures, "Case:", case, "\n")
 result <- array(0, c(nRepeat,4))
 
 for(i in 1:nRepeat){
@@ -89,4 +89,4 @@ for(i in 1:nRepeat){
   result[i, 3] <- sqrt(mean((fp_hat - fp)^2))
   result[i, 4] <- sqrt(mean(abs(N1_hat - N1) / N1))
 }
-print(result)
+print(colMeans(result))
