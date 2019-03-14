@@ -5,88 +5,101 @@
 
 library("unmarked")
 library("sigmoid")
-nSites <- 50 # number of total sites 
+nSites <- 500 # number of total sites 
 nVisits <- 1 # number of total visits
 nFeatures <- 10 # number of features (Assuming it's same for both habitat and detection probability)
-case <- 3 # experiment cases (1: z1 = w1, 2: z1 partially = w1, 3: z1 != w1)
-nRepeat <- 5
-cat("nSites:", nSites, "nVisits:", nVisits, "nFeatures:", nFeatures, "Case:", case, "\n")
-result <- array(0, c(nRepeat,4))
+nRepeat <- 50
+nK <- 200
+cat("nSites:", nSites, ", nVisits:", nVisits, ", nFeatures:", nFeatures, "\n")
 
-for(i in 1:nRepeat){
-  cat("Repeat", i)
-  cat(" Generating simulation data >>> ")
+#if (file.exists("result_case_1.csv")) {
+#  file.remove("result_case_1.csv")
+#  file.remove("result_case_2.csv")
+#  file.remove("result_case_3.csv")  
+#}
+
+for(i in 1:nRepeat) {
+  start_time <- Sys.time()
+  cat("Repeat", i, "\n")  
   # Generating simulation data for a species A ==================================
   z1 <-  matrix(runif(nSites*nFeatures), nSites, nFeatures) # generate random habitat features
   a1 <- runif(nFeatures+1) # generate random parameters for habitat features (z1)
-
-  if ( case == 1 ) {
-    w1 <- z1 # w1 = z1
-  } else if (case == 2) {
-    w1 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
-    sub.idx <- sample(1:nFeatures, round(nFeatures/2))
-    w1[,sub.idx] <- z1[,sub.idx] # w1 partially = z1
-  } else {
-    w1 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) # w1 != z1
-  }
-  b1 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w1)
-
-  lambda1 <- exp(cbind(1,z1) %*% a1) # parameter for the true abundance of A
-  N1 <- rpois(nSites, lambda1) # true abundance for species A
-  p <- sigmoid(cbind(1,w1) %*% b1) # detection probability
-
+  
   # Generating simulation data for a species B ==================================
   z2 <-  matrix(runif(nSites*nFeatures), nSites, nFeatures) # generate random habitat features
   a2 <- runif(nFeatures + 1) # generate random parameters for habitat features (z2)
+  
+  for(case in 1:3){
+    result <- array(0, c(1,4))
+    cat(" Generating data ( case ", case, ") >>> ")
+    if ( case == 1 ) {
+      w1 <- z1 # w1 = z1
+    } else if (case == 2) {
+      w1 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
+      sub.idx <- sample(1:nFeatures, round(nFeatures/2))
+      w1[,sub.idx] <- z1[,sub.idx] # w1 partially = z1
+    } else {
+      w1 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) # w1 != z1
+    }
+    b1 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w1)
 
-  case = 3 # experiment cases (1: z2 = w2, 2: z2 partially = w2, 3: z2 != w2)
-  if ( case == 1 ) {
-    w2 <- z2 # w2 = z2
-  } else if (case == 2) {
-    w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
-    sub.idx <- sample(1:nFeatures, round(nFeatures/2))
-    w2[,sub.idx] <- z2[,sub.idx] # w2 partially = z2
-  } else {
-    w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) # w2 != z2
+    lambda1 <- exp(cbind(1,z1) %*% a1) # parameter for the true abundance of A
+    N1 <- rpois(nSites, lambda1) # true abundance for species A
+    p <- sigmoid(cbind(1,w1) %*% b1) # detection probability
+
+    if ( case == 1 ) {
+      w2 <- z2 # w2 = z2
+    } else if (case == 2) {
+      w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
+      sub.idx <- sample(1:nFeatures, round(nFeatures/2))
+      w2[,sub.idx] <- z2[,sub.idx] # w2 partially = z2
+    } else {
+      w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) # w2 != z2
+    }
+    b2 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w2)
+
+    lambda2 <- exp(cbind(1,z2) %*% a2) # parameter for the true abundance of B
+    N2 <- rpois(nSites, lambda2) # true abundance for species B
+    fp <- sigmoid(cbind(1,w2) %*% b2) # false positive rate
+
+    # Generating observed counts Y ================================================
+    Y <- matrix(NA, nSites, nVisits) # observed counts for A
+    A <- matrix(NA, nSites, nVisits) # true observed counts from A
+    B <- matrix(NA, nSites, nVisits) # false observed counts from B (mis-identification)
+    for(j in 1:nVisits) {
+      A[,j] <- rbinom(nSites, N1, p[j])  # true observed counts from A
+      B[,j] <- rbinom(nSites, N2, fp[j]) # false observed counts from B (mis-identification)
+      Y[,j] <- A[,j] + B[,j] # total observed counts recorded as A
+    }
+    cat("Max Y:", max(Y), ">>> ")
+    
+    if ( max(Y) < 200 ) {
+      cat("Fitting models >>> \n")
+      # Fit a model with A
+      visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
+      umf1 <- unmarkedFramePCount(y=A, siteCovs=data.frame(x=z1),obsCovs=list(visit=visitMat))
+      fm1 <- pcount(~w1 ~z1, umf1, K=nK)
+      b1_hat <- coef(fm1, type="det")
+      W1 <- cbind(rep(1,nSites), w1)
+      p_hat <- plogis(W1 %*% b1_hat)
+      N1_hat <- round(bup(ranef(fm1))) # Estimated population size
+      result[1] <- sqrt(mean((p_hat - p)^2))
+      result[2] <- sqrt(mean(abs(N1_hat - N1) / N1))
+
+      # Fit a model with B
+      visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
+      umf2 <- unmarkedFramePCount(y=B, siteCovs=data.frame(x=z2),obsCovs=list(visit=visitMat))
+      fm2 <- pcount(~w2 ~z2, umf2, K=nK)
+      b2_hat = coef(fm2, type="det")
+      W2 = cbind(rep(1,nSites), w2)
+      fp_hat = plogis(W2 %*% b2_hat)
+      N2_hat = round(bup(ranef(fm2))) # Estimated population size
+      result[3] <- sqrt(mean((fp_hat - fp)^2))
+      result[4] <- sqrt(mean(abs(N1_hat - N2) / N2))
+      write.table(result, paste("result_case_", case, ".csv", sep=""), col.names=F, row.names=F,sep=",", append=TRUE)    
+    }
   }
-  b2 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w2)
-
-  lambda2 <- exp(cbind(1,z2) %*% a2) # parameter for the true abundance of B
-  N2 <- rpois(nSites, lambda2) # true abundance for species B
-  fp <- sigmoid(cbind(1,w2) %*% b2) # false positive rate
-
-
-  # Generating observed counts Y ================================================
-  Y <- matrix(NA, nSites, nVisits) # observed counts for A
-  A <- matrix(NA, nSites, nVisits) # true observed counts from A
-  B <- matrix(NA, nSites, nVisits) # false observed counts from B (mis-identification)
-  for(j in 1:nVisits) {
-    A[,j] <- rbinom(nSites, N1, p[j])  # true observed counts from A
-    B[,j] <- rbinom(nSites, N2, fp[j]) # false observed counts from B (mis-identification)
-    Y[,j] <- A[,j] + B[,j] # total observed counts recorded as A
-  }
-
-  cat("Fitting models >>> \n")
-  # Fit a model with A
-  visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
-  umf1 <- unmarkedFramePCount(y=A, siteCovs=data.frame(x=z1),obsCovs=list(visit=visitMat))
-  fm1 <- pcount(~w1 ~z1, umf1, K=200)
-  b1_hat <- coef(fm1, type="det")
-  W1 <- cbind(rep(1,nSites), w1)
-  p_hat <- plogis(W1 %*% b1_hat)
-  N1_hat <- round(bup(ranef(fm1))) # Estimated population size
-  result[i, 1] <- sqrt(mean((p_hat - p)^2))
-  result[i, 2] <- sqrt(mean(abs(N1_hat - N1) / N1))
-
-  # Fit a model with B
-  visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
-  umf2 <- unmarkedFramePCount(y=B, siteCovs=data.frame(x=z2),obsCovs=list(visit=visitMat))
-  fm2 <- pcount(~w2 ~z2, umf2, K=200)
-  b2_hat = coef(fm2, type="det")
-  W2 = cbind(rep(1,nSites), w2)
-  fp_hat = plogis(W2 %*% b2_hat)
-  N2_hat = round(bup(ranef(fm2))) # Estimated population size
-  result[i, 3] <- sqrt(mean((fp_hat - fp)^2))
-  result[i, 4] <- sqrt(mean(abs(N1_hat - N1) / N1))
+  end_time <- Sys.time()
+  print(end_time - start_time)  
 }
-print(colMeans(result))
+#print(colMeans(result))
