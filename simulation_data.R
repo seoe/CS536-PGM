@@ -44,7 +44,7 @@ for(i in 1:nRepeat) {
       w2 <- vector("list", nFeatures)
       for (i in 1:nFeatures){
         w1[[i]] <- as.matrix(w1_dummy[,i])
-        w2[[1]] <- as.matrix(w2_dummy[,i])
+        w2[[i]] <- as.matrix(w2_dummy[,i])
       }
       w1_dummyXb1 = sweep(cbind(1,w1_dummy),MARGIN=2,b1,`*`)
       p <- sigmoid(w1_dummyXb1) # detection probability
