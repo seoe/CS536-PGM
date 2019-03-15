@@ -13,7 +13,7 @@ nK <- 200
 case <-1
 cat("nSites:", nSites, ", nVisits:", nVisits, ", nFeatures:", nFeatures, "\n")
 
-a1 <- runif(nFeatures+1) # generate random parameters for habitat features (z1)
+a1 <- runif(nFeatures + 1) # generate random parameters for habitat features (z1)
 a2 <- runif(nFeatures + 1) # generate random parameters for habitat features (z2)
 b1 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w1)
 b2 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w2)
@@ -39,41 +39,51 @@ for(i in 1:nRepeat) {
     cat(" Generating data ( case ", case, ") >>> ")
     if ( case == 1 ) {
       w1_dummy <- z1 # w1 = z1
+      w2_dummy <- z2 # w2 = z2
       w1 <- vector("list", nFeatures)
+      w2 <- vector("list", nFeatures)
       for (i in 1:nFeatures){
         w1[[i]] <- as.matrix(w1_dummy[,i])
+        w2[[1]] <- as.matrix(w2_dummy[,i])
       }
-      w2 <- z2 # w2 = z2
+      w1_dummyXb1 = sweep(cbind(1,w1_dummy),MARGIN=2,b1,`*`)
+      p <- sigmoid(w1_dummyXb1) # detection probability
+      w2_dummyXb2 = sweep(cbind(1,w2_dummy),MARGIN=2,b2,`*`)
+      fp <- sigmoid(w2_dummyXb2) # false positive rate  
       
-     } else if (case == 2) {
-      w1_dummy <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
+    } else if (case == 2) {
+      w1_dummy <- matrix(runif(nSites*nFeatures), nSites, nFeatures)       
+      w2_dummy <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
       sub.idx <- sample(1:nFeatures, round(nFeatures/2))
       w1_dummy[,sub.idx] <- z1[,sub.idx] # w1 partially = z1
+      w2_dummy[,sub.idx] <- z2[,sub.idx] # w2 partially = z2  ### DOES THIS MAKE SENSE? 
       w1 <- vector("list", nFeatures)
+      w2 <- vector("list", nFeatures)
+      
       for (i in 1:nFeatures){
         w1[[i]] <- as.matrix(w1_dummy[,i])
+        w2[[i]] <- as.matrix(w2_dummy[,i])
       }
-      w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) 
-      sub.idx <- sample(1:nFeatures, round(nFeatures/2))
-      w2[,sub.idx] <- z2[,sub.idx] # w2 partially = z2
       
-      
+      w1_dummyXb1 = sweep(cbind(1,w1_dummy),MARGIN=2,b1,`*`)
+      p <- sigmoid(w1_dummyXb1) # detection probability
+      w2_dummyXb2 = sweep(cbind(1,w2_dummy),MARGIN=2,b2,`*`)
+      fp <- sigmoid(w2_dummyXb2) # false positive rate  
+
     } else {  
       w1 <- vector("list", nFeatures)
+      w2 <- vector("list", nFeatures)
       for (j in 1:nFeatures){
         w1[[i]] <- matrix(runif(nSites*nVisits), nSites, nVisits) # w1 != z1
+        w2[[i]] <- matrix(runif(nSites*nVisits), nSites, nVisits) # w2 != z2
       }
-      w2 <- matrix(runif(nSites*nFeatures), nSites, nFeatures) # w2 != z2
     }
 
     lambda1 <- exp(cbind(1,z1) %*% a1) # parameter for the true abundance of A 
     N1 <- rpois(nSites, lambda1) # true abundance for species A
-    p <- sigmoid(cbind(1,w1) %*% b1) # detection probability  ## FIX FOR W1 MATRIX - LH
-
 
     lambda2 <- exp(cbind(1,z2) %*% a2) # parameter for the true abundance of B
     N2 <- rpois(nSites, lambda2) # true abundance for species B
-    fp <- sigmoid(cbind(1,w2) %*% b2) # false positive rate  ## FIX FOR W1 MATRIX - LH
 
     # Generating observed counts Y ================================================
     Y <- matrix(NA, nSites, nVisits) # observed counts for A
@@ -89,8 +99,6 @@ for(i in 1:nRepeat) {
     if ( max(Y) < 200 ) {
       cat("Fitting models >>> \n")
       # Fit a model with A
-      #visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
-      z1 <- data.frame(x=z1)
       umf1 <- unmarkedFramePCount(y=A, siteCovs=data.frame(x=z1),obsCovs=w1)
       fm1 <- pcount(~V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8  + V9 + V10 
                     ~x.1 + x.2 + x.3 + x.4 + x.5 + x.6 + x.7 + x.8 + x.9 + x.10, 
@@ -105,8 +113,10 @@ for(i in 1:nRepeat) {
 
       # Fit a model with B
       visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
-      umf2 <- unmarkedFramePCount(y=B, siteCovs=data.frame(x=z2),obsCovs=list(visit=visitMat))
-      fm2 <- pcount(~w2 ~z2, umf2, K=nK)
+      umf2 <- unmarkedFramePCount(y=B, siteCovs=data.frame(x=z2),obsCovs=w2)
+      fm1 <- pcount(~V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8  + V9 + V10 
+                    ~x.1 + x.2 + x.3 + x.4 + x.5 + x.6 + x.7 + x.8 + x.9 + x.10, 
+                    umf2, K=nK)
       b2_hat = coef(fm2, type="det")
       W2 = cbind(rep(1,nSites), w2)
       fp_hat = plogis(W2 %*% b2_hat)
