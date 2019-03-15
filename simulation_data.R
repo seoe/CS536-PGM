@@ -6,8 +6,8 @@
 library("unmarked")
 library("sigmoid")
 nSites <- 10 #500 # number of total sites 
-nVisits <- 1 # number of total visits
-nFeatures <- 10 # number of features (Assuming it's same for both habitat and detection probability)
+nVisits <- 2 # number of total visits
+nFeatures <- 6 # number of features (Assuming it's same for both habitat and detection probability)
 nRepeat <- 1 #50
 nK <- 200
 case <-1
@@ -73,9 +73,23 @@ for(i in 1:nRepeat) {
     } else {  
       w1 <- vector("list", nFeatures)
       w2 <- vector("list", nFeatures)
-      for (j in 1:nFeatures){
+      for (i in 1:nFeatures){
         w1[[i]] <- matrix(runif(nSites*nVisits), nSites, nVisits) # w1 != z1
         w2[[i]] <- matrix(runif(nSites*nVisits), nSites, nVisits) # w2 != z2
+      }
+      p <- matrix(NA, nSites, nVisits)
+      fp <- matrix(NA, nSites, nVisits)
+      for (i in 1:nSites){
+        for (j in 1:nVisits){
+          single_w1 = rep(1, nFeatures+1)
+          single_w2 = rep(1, nFeatures+1)
+          for (k in 1:nFeatures){
+            single_w1[k+1] <- w1[[k]][i,j]
+            single_w2[k+1] <- w2[[k]][i,j]
+          }
+          p[i,j] <- sigmoid(single_w1 %*% b1) # detection probability
+          fp[i,j] <- sigmoid(single_w2 %*% b2) # false positive rate  
+        }
       }
     }
 
@@ -112,7 +126,6 @@ for(i in 1:nRepeat) {
       result[2] <- sqrt(mean(abs(N1_hat - N1) / N1))  ## CHUAN TO FIX # USE RMSE 
 
       # Fit a model with B
-      visitMat <- matrix(as.character(1:nVisits), nSites, nVisits, byrow=TRUE)
       umf2 <- unmarkedFramePCount(y=B, siteCovs=data.frame(x=z2),obsCovs=w2)
       fm1 <- pcount(~V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8  + V9 + V10 
                     ~x.1 + x.2 + x.3 + x.4 + x.5 + x.6 + x.7 + x.8 + x.9 + x.10, 
