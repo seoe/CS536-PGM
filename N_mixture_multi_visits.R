@@ -20,11 +20,11 @@ run_sim <- function(nSites, nVisits) {
   #set.seed("1234")
 
   # clear the previous result files
-  if (file.exists(paste("s", nSites, "_v", nVisits, "_k", nK, "_c1.csv"))) {
-    for (i in 1:3) {
-      file.remove(paste("s", nSites, "_v", nVisits, "_k", nK, "_c", i, ".csv", sep=""))
-    }
-  }
+  #if (file.exists(paste("s", nSites, "_v", nVisits, "_k", nK, "_c1.csv"))) {
+  #  for (i in 1:3) {
+  #    file.remove(paste("s", nSites, "_v", nVisits, "_k", nK, "_c", i, ".csv", sep=""))
+  #  }
+  #}
 
   for (step in 1:nRepeat) {
     start_time <- Sys.time()
