@@ -12,8 +12,8 @@ run_sim <- function(nSites, nVisits) {
   nRepeat <- 50
 
   # experimental parameters
-  nSites <- 200 # number of total sites (200~500)
-  nVisits <- 5 # number of total visits (1~5)
+  #nSites <- 200 # number of total sites (200~500)
+  #nVisits <- 5 # number of total visits (1~5)
   nK <- 100 # max number of observations
 
   cat("nSites:", nSites, "nVisits:", nVisits, "nK:", nK, "\n")
@@ -43,7 +43,8 @@ run_sim <- function(nSites, nVisits) {
     z2 <-  matrix(runif(nSites*nFeatures), nSites, nFeatures)
     
     # 4. generate detection features according to the degree of overlap with habitat features
-    for (case in 1:3) {
+    if (nVisits == 1) init_case = 1 else init_case = 3
+    for (case in init_case:3) {      
       result <- array(0, c(1,6))
       cat(" Generating data (", case, ") >>> ")
       if ( case == 1 ) { # w = z
