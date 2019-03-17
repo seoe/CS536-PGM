@@ -170,7 +170,7 @@ for(i in 1:nRepeat) {
       
       # E-M 
       # M-step
-      while (mean(abs(A_est - A_est_0)) > 1)
+      while (mean(abs(A_est - A_est_0)) > 0.1)
       { 
         iter = iter + 1
         cat("EM iteration = ", iter, "\n")
@@ -231,14 +231,16 @@ for(i in 1:nRepeat) {
       B_est = Y - A_est
       }
     } 
+    cat("Final df_y1 = ", mean(abs(A_est - A_est_0)), "\n")
     result[1] <- sqrt(mean((p_hat - p)^2)) # USE RMSE
     result[2] <- sqrt(mean(((lambda1_hat - lambda1) / lambda1) ^ 2))  ##FIXED -- Chuan # USE RMSE 
     result[3] <- sqrt(mean((fp_hat - fp)^2))  # USE RMSE
     result[4] <- sqrt(mean(((lambda2_hat - lambda2) / lambda2) ^ 2))  ## FIXED -- Chuan # USE RMSE
-    result[5] = mean(abs(A_est - A_est_0)) # mean Y1-Y1_0
+    result[5] = mean(abs(A_est - A)) # mean Y1_est - Y1
     write.table(result, paste("result_case_", case, ".csv", sep=""), col.names=F, row.names=F,sep=",", append=TRUE)    
   #}
     end_time <- Sys.time()
     print(end_time - start_time)  
 }
 print(colMeans(result))
+
