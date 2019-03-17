@@ -185,7 +185,7 @@ merge_results <- function() {
           filename = paste("s", s, "_v", v, "_k", k, "_c", c, ".csv", sep="")          
           if (file.exists(filename)) {
             print(filename)
-            myResult = read.csv(paste("s", s, "_v", v, "_k", k, "_c", c, ".csv", sep=""), header=FALSE)
+            myResult = read.csv(paste("csv/s", s, "_v", v, "_k", k, "_c", c, ".csv", sep=""), header=FALSE)
             colnames(myResult) = c("RMSE_p", "RMSE_lambda1", "RMSE_fp", "RMSE_lambda2", "maxY", "meanY")
             Case <- rep(c,nrow(myResult))
             myResult <- cbind(Case, myResult)
