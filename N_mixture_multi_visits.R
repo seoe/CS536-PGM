@@ -14,8 +14,7 @@ run_sim <- function(nSites, nVisits) {
 
   # experimental parameters
   #nSites <- 200 # number of total sites (200~500)
-  #nVisits <- 5 # number of total visits (1~5)
-  nK <- 1000 # max number of observations
+  #nVisits <- 5 # number of total visits (1~5)  
 
   # clear the previous result files
   #if (file.exists(paste("s", nSites, "_v", nVisits, "_k", nK, "_c1.csv"))) {
@@ -26,11 +25,11 @@ run_sim <- function(nSites, nVisits) {
 
   for (step in 1:nRepeat) {
     start_time <- Sys.time()
-    cat("Repeat", step, "nSites:", nSites, "nVisits:", nVisits, "nK:", nK, "\n")
+    cat("Repeat", step, "nSites:", nSites, "nVisits:", nVisits, "\n")
     
     # 1. generate parameters for habitat features
-    a1 <- runif(nFeatures + 1, 0.2, 1.2) 
-    a2 <- runif(nFeatures + 1, 0.2, 1.2) 
+    a1 <- runif(nFeatures + 1) 
+    a2 <- runif(nFeatures + 1) 
     
     # 2. generate parameters for detection features
     b1 <- rnorm(nFeatures + 1) 
@@ -115,19 +114,19 @@ run_sim <- function(nSites, nVisits) {
         }
       }
       cat("Max Y:", max(Y), ">>> ")
+      nK <- max(Y) + 100 # max number of observations
       result[5] <- max(Y)
       result[6] <- mean(Y)    
       
       # 8. learning models
       #if ( FALSE ) {
-      if ( max(Y) < nK ) {
+      if ( max(Y) < 1000 ) {
         cat("Fitting models >>> \n")
         # Fit a model with A
         z1.1 <- data.frame(x1=z1)
         NAME <- paste0("w1.", 1:nFeatures)
         names(w1) <- NAME
-        umf1 <- unmarkedFramePCount(y=A, siteCovs=z1.1,obsCovs=w1)        
-        result <- array(0, c(1,6))
+        umf1 <- unmarkedFramePCount(y=A, siteCovs=z1.1,obsCovs=w1)   
         fm1 <- pcount(~w1.1 + w1.2 + w1.3 + w1.4 + w1.5 + w1.6 + w1.7 + w1.8  + w1.9 + w1.10
                       ~x1.1 + x1.2 + x1.3 + x1.4 + x1.5 + x1.6 + x1.7 + x1.8 + x1.9 + x1.10, 
                       umf1, K=nK)
@@ -163,7 +162,7 @@ run_sim <- function(nSites, nVisits) {
         result[3] <- sqrt(mean((fp_hat - fp)^2))
         result[4] <- sqrt(mean(((lambda2_hat - lambda2) / lambda2) ^ 2))
         
-        write.table(result, paste("s", nSites, "_v", nVisits, "_k", nK, "_c", case, ".csv", sep=""), col.names=F, row.names=F,sep=",", append=TRUE)    
+        write.table(result, paste("s", nSites, "_v", nVisits, "_k", 0, "_c", case, ".csv", sep=""), col.names=F, row.names=F,sep=",", append=TRUE)    
       }
     }
     end_time <- Sys.time()
@@ -232,8 +231,8 @@ draw_plot <- function() {
   p4 <- ggplot(Sum, aes(x=nSites, y=mean, group=Case, color=Case)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2")
   
-  png("nSites-RMSE.png")
-  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T)
+  png("figures/nSites-RMSE.png")
+  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "nVisits = 1")
   dev.off()
   
   # nVisits vs RMSE (Case = 3)
@@ -259,8 +258,8 @@ draw_plot <- function() {
   p4 <- ggplot(Sum, aes(x=nVisits, y=mean, group=nSites, color=nSites)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2")
   
-  png("nVisits-RMSE.png")
-  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T)
+  png("figures/nVisits-RMSE.png")
+  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "Case = 3")
   dev.off()
   
   # MaxY vs RMSE (nSites = 500, nVisits = 1)
@@ -287,35 +286,36 @@ draw_plot <- function() {
   p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("max Y")
 
-  png("maxY-RMSE.png")
-  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T)
+  png("figures/maxY-RMSE.png")
+  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "nSites = 500 & nVisits == 1")
   dev.off()
   
   # meanY = combined_result[combined_result$nSites == 500 & combined_result$nVisits == 1,] 
-  sub_result$groups <- cut(sub_result$maxY, breaks=c(0,100,200,300,500,Inf))
+  sub_result = combined_result[combined_result$nSites == 500 & combined_result$nVisits == 1,]
+  sub_result$groups <- cut(sub_result$meanY, breaks=c(0,20,40,60,80,Inf))
   
   Sum <- Summarize(RMSE_p ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
   p1 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
-  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_p") + xlab("max Y")
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_p") + xlab("mean Y")
   
   Sum <- Summarize(RMSE_lambda1 ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
   p2 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
-  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda1") + xlab("max Y")
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda1") + xlab("mean Y")
   
   Sum <- Summarize(RMSE_fp ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
   p3 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
-  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_fp") + xlab("max Y")
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_fp") + xlab("mean Y")
   
   Sum <- Summarize(RMSE_lambda2 ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
   p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
-  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("max Y")
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("mean Y")
 
-  png("maxY-RMSE.png")
-  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T)
+  png("figures/meanY-RMSE.png")
+  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "nSites = 500 & nVisits == 1")
   dev.off()    
   
   #ggplot(Sum, aes(x = nSites, y = mean, color = Case)) +
