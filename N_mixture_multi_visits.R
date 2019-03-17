@@ -3,6 +3,7 @@
 # Member: Laurel Hopkins, Eugene Seo, Chuan Tian
 # Code description: Simulation data for N-mixture model
 
+remove(list=ls())
 library("unmarked")
 library("sigmoid")
 
@@ -14,10 +15,7 @@ run_sim <- function(nSites, nVisits) {
   # experimental parameters
   #nSites <- 200 # number of total sites (200~500)
   #nVisits <- 5 # number of total visits (1~5)
-  nK <- 100 # max number of observations
-
-  cat("nSites:", nSites, "nVisits:", nVisits, "nK:", nK, "\n")
-  #set.seed("1234")
+  nK <- 1000 # max number of observations
 
   # clear the previous result files
   #if (file.exists(paste("s", nSites, "_v", nVisits, "_k", nK, "_c1.csv"))) {
@@ -28,11 +26,11 @@ run_sim <- function(nSites, nVisits) {
 
   for (step in 1:nRepeat) {
     start_time <- Sys.time()
-    cat("Repeat", step, "\n")
+    cat("Repeat", step, "nSites:", nSites, "nVisits:", nVisits, "nK:", nK, "\n")
     
     # 1. generate parameters for habitat features
-    a1 <- runif(nFeatures + 1, 0, 0.8) 
-    a2 <- runif(nFeatures + 1, 0, 0.8) 
+    a1 <- runif(nFeatures + 1, 0.2, 1.2) 
+    a2 <- runif(nFeatures + 1, 0.2, 1.2) 
     
     # 2. generate parameters for detection features
     b1 <- rnorm(nFeatures + 1) 
@@ -121,13 +119,15 @@ run_sim <- function(nSites, nVisits) {
       result[6] <- mean(Y)    
       
       # 8. learning models
+      #if ( FALSE ) {
       if ( max(Y) < nK ) {
         cat("Fitting models >>> \n")
         # Fit a model with A
         z1.1 <- data.frame(x1=z1)
         NAME <- paste0("w1.", 1:nFeatures)
         names(w1) <- NAME
-        umf1 <- unmarkedFramePCount(y=A, siteCovs=z1.1,obsCovs=w1)
+        umf1 <- unmarkedFramePCount(y=A, siteCovs=z1.1,obsCovs=w1)        
+        result <- array(0, c(1,6))
         fm1 <- pcount(~w1.1 + w1.2 + w1.3 + w1.4 + w1.5 + w1.6 + w1.7 + w1.8  + w1.9 + w1.10
                       ~x1.1 + x1.2 + x1.3 + x1.4 + x1.5 + x1.6 + x1.7 + x1.8 + x1.9 + x1.10, 
                       umf1, K=nK)
@@ -147,7 +147,7 @@ run_sim <- function(nSites, nVisits) {
         z2.1 <- data.frame(x2=z2)
         NAME <- paste0("w2.", 1:nFeatures)
         names(w2) <- NAME
-        umf2 <- unmarkedFramePCount(y=B, siteCovs=z2.1,obsCovs=w2)
+        umf2 <- unmarkedFramePCount(y=B, siteCovs=z2.1,obsCovs=w2)        
         fm2 <- pcount(~w2.1 + w2.2 + w2.3 + w2.4 + w2.5 + w2.6 + w2.7 + w2.8  + w2.9 + w2.10
                       ~x2.1 + x2.2 + x2.3 + x2.4 + x2.5 + x2.6 + x2.7 + x2.8 + x2.9 + x2.10, 
                       umf2, K=nK)
@@ -170,4 +170,35 @@ run_sim <- function(nSites, nVisits) {
     print(end_time - start_time)  
   }
   print(colMeans(result))
+}
+
+
+merge_results <- function() {
+  nSites_list = c(200,500)
+  nVisits_list = c(1,5)
+  nK_list = c(100,500,1000)
+  case_list = c(1,2,3)
+  combined_result <- data.frame()
+  for (s in nSites_list) {
+    for (v in nVisits_list) {
+      for (k in nK_list) {
+        for (c in case_list) {
+          filename = paste("s", s, "_v", v, "_k", k, "_c", c, ".csv", sep="")          
+          if (file.exists(filename)) {
+            print(filename)
+            myResult = read.csv(paste("s", s, "_v", v, "_k", k, "_c", c, ".csv", sep=""), header=FALSE)
+            colnames(myResult) = c("RMSE_p", "RMSE_lambda1", "RMSE_fp", "RMSE_lambda2", "maxY", "meanY")
+            nK <- rep(k,nrow(myResult))
+            myResult <- cbind(nK, myResult)
+            nVisits <- rep(v,nrow(myResult))
+            myResult <- cbind(nVisits, myResult)
+            nSites <- rep(s,nrow(myResult))
+            myResult <- cbind(nSites, myResult)
+            combined_result <- rbind(combined_result, myResult)
+            print(dim(combined_result))
+          }
+        }
+      }
+    }
+  }
 }
