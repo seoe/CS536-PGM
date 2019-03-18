@@ -12,7 +12,7 @@ nRepeat <- 1 #50
 nK <- 300
 case <-3
 cat("nSites:", nSites, ", nVisits:", nVisits, ", nFeatures:", nFeatures, "\n")
-set.seed("1234")
+#set.seed("1234")
 
 # a1 <- runif(nFeatures+1, 0, 0.8) # generate random parameters for habitat features (z1)
 # a2 <- runif(nFeatures + 1, 0, 0.8) # generate random parameters for habitat features (z2)
@@ -26,13 +26,13 @@ set.seed("1234")
 #  file.remove("result_case_3.csv")  
 #}
 
-for(i in 1:nRepeat) {
+for(k in 1:nRepeat) {
   a1 <- runif(nFeatures+1, 0, 1) # generate random parameters for habitat features (z1)
   a2 <- runif(nFeatures + 1, 0, 1) # generate random parameters for habitat features (z2)
   b1 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w1)
   b2 <- rnorm(nFeatures + 1) # generate random parameters for detection prob. features (w2)
   start_time <- Sys.time()
-  cat("Repeat", i, "\n")  
+  cat("Repeat", k, "\n")  
   # Generating simulation data for a species A ==================================
   z1 <-  matrix(runif(nSites*nFeatures), nSites, nFeatures) # generate random habitat features
   
@@ -157,7 +157,8 @@ for(i in 1:nRepeat) {
           B_est[i, j] = Y[i, j] - A_est[i, j]
         }
       }
-      A_est_0 = matrix(0, nSites, nVisits)
+      # A_est_0 = matrix(0, nSites, nVisits)
+      # B_est_0 = matrix(0, nSites, nVisits)
       # coef_a1 <- rep(0, nFeatures + 1)
       # coef_a2 <- rep(0, nFeatures + 1)
       # coef_b1 <- rep(0, nFeatures + 1)
@@ -166,15 +167,24 @@ for(i in 1:nRepeat) {
       # a2_hat <- rep(5, nFeatures + 1)
       # b1_hat <- rep(5, nFeatures + 1)
       # b2_hat <- rep(5, nFeatures + 1)
+      p_hat_0 <- matrix(0, nSites, nVisits)
+      fp_hat_0 <- matrix(0, nSites, nVisits)
+      lambda1_hat_0 <- matrix(0, nSites, 1)
+      lambda2_hat_0 <- matrix(0, nSites, 1)
+      p_hat <- matrix(5, nSites, nVisits)
+      fp_hat <- matrix(5, nSites, nVisits)
+      lambda1_hat <- matrix(5, nSites, 1)
+      lambda2_hat <- matrix(5, nSites, 1)
       iter = 0
       
       # E-M 
       # M-step
-      while (mean(abs(A_est - A_est_0)) > 0.1)
+      while (mean(abs(p_hat_0 - p_hat)) > 0.05 | mean(abs(fp_hat_0 - fp_hat)) > 0.05)
+             # |mean(abs(lambda1_hat_0 - lambda1_hat) / lambda1_hat) > 0.5 | mean(abs(lambda2_hat_0 - lambda2_hat) / lambda2_hat) > 0.5)
       { 
         iter = iter + 1
         cat("EM iteration = ", iter, "\n")
-        cat("df_y1 = ", mean(abs(A_est - A_est_0)), "\n")
+        # cat("df_y1 = ", mean(abs(A_est - A_est_0)), "df_y2 = ", mean(abs(B_est - B_est_0)), "\n")
         # df_a1 = mean(abs(coef_a1 - as.vector(a1_hat)))
         # df_a2 = mean(abs(coef_a2 - as.vector(a2_hat)))
         # df_b1 = mean(abs(coef_b1 - as.vector(b1_hat)))
@@ -184,7 +194,14 @@ for(i in 1:nRepeat) {
         # coef_a2 <- as.vector(a2_hat)
         # coef_b1 <- as.vector(b1_hat)
         # coef_b2 <- as.vector(b2_hat)
-      A_est_0 = A_est
+        cat("df_p_hat = ", mean(abs(p_hat_0 - p_hat)), "df_fp_hat = ", mean(abs(fp_hat_0 - fp_hat)), "\n")
+        cat("df_lambda1_hat = ", mean(abs(lambda1_hat_0 - lambda1_hat) / lambda1_hat), "df_lambda2_hat = ", mean(abs(lambda2_hat_0 - lambda2_hat) / lambda2_hat), "\n")
+        p_hat_0 <- p_hat
+        fp_hat_0 <- fp_hat
+        lambda1_hat_0 <- lambda1_hat
+        lambda2_hat_0 <- lambda2_hat
+      # A_est_0 = A_est
+      # B_est_0 = B_est
       z1.1 <- data.frame(x1=z1)
       NAME <- paste0("w1.", 1:nFeatures)
       names(w1) <- NAME
@@ -226,13 +243,15 @@ for(i in 1:nRepeat) {
       mu_est <- p_hat * (matrix(rep(lambda1_hat, nVisits), nSites, nVisits)) + fp_hat * (matrix(rep(lambda2_hat, nVisits), nSites, nVisits))
       mu1_est <- p_hat * (matrix(rep(lambda1_hat, nVisits), nSites, nVisits))
       mu2_est <- fp_hat * (matrix(rep(lambda2_hat, nVisits), nSites, nVisits))
-      A_est = round(Y * mu1_est / mu_est, 0)
+      A_est = round(Y * mu1_est / mu_est)
       mu2_est = mu_est - mu1_est
       B_est = Y - A_est
       }
     } 
-    cat("Final df_y1 = ", mean(abs(A_est - A_est_0)), "\n")
-    result[1] <- sqrt(mean((p_hat - p)^2)) # USE RMSE
+    cat("final df_p_hat = ", mean(abs(p_hat_0 - p_hat)), "final df_fp_hat = ", mean(abs(fp_hat_0 - fp_hat)), "\n")
+    cat("final df_lambda1_hat = ", mean(abs(lambda1_hat_0 - lambda1_hat) / lambda1_hat), 
+        "final df_lambda2_hat = ", mean(abs(lambda2_hat_0 - lambda2_hat) / lambda2_hat), "\n")
+    result[1] <- result[1] + sqrt(mean((p_hat - p)^2)) # USE RMSE
     result[2] <- sqrt(mean(((lambda1_hat - lambda1) / lambda1) ^ 2))  ##FIXED -- Chuan # USE RMSE 
     result[3] <- sqrt(mean((fp_hat - fp)^2))  # USE RMSE
     result[4] <- sqrt(mean(((lambda2_hat - lambda2) / lambda2) ^ 2))  ## FIXED -- Chuan # USE RMSE
@@ -243,4 +262,5 @@ for(i in 1:nRepeat) {
     print(end_time - start_time)  
 }
 print(colMeans(result))
+
 
