@@ -174,15 +174,15 @@ run_sim <- function(nSites, nVisits) {
 
 merge_results <- function() {
   nSites_list = c(200,300,400,500)
-  nVisits_list = c(1,5)
-  nK_list = c(0,100,500,1000)
+  nVisits_list = c(1,5,10)
+  nK_list = c(0) #,100,500,1000)
   case_list = c(1,2,3)
   combined_result <- data.frame()
   for (s in nSites_list) {
     for (v in nVisits_list) {
       for (k in nK_list) {
         for (c in case_list) {
-          filename = paste("csv_tmp/s", s, "_v", v, "_k", k, "_c", c, ".csv", sep="")          
+          filename = paste("csv/s", s, "_v", v, "_k", k, "_c", c, ".csv", sep="")          
           if (file.exists(filename)) {
             print(filename)
             myResult = read.csv(filename, header=FALSE)
@@ -213,7 +213,7 @@ draw_plot <- function() {
   print(max(result$maxY))
   print(mean(result$maxY))
   result$YmaxGroup <- cut(result$maxY, breaks=c(0,200,400,600,800,Inf))
-  result$YmeanGroup <- cut(result$meanY, breaks=c(0,50,100,150,200,Inf))
+  result$YmeanGroup <- cut(result$meanY, breaks=c(0,30,60,90,120,Inf))
   
   group_list = unique(result$YmaxGroup)
   for (i in group_list) {
@@ -331,7 +331,7 @@ draw_plot <- function() {
   }
   
   # MaxY vs RMSE (nSites = 500, nVisits = 1)
-  sub_result = combined_result[combined_result$nSites == 500 & combined_result$nVisits == 1,]   
+  sub_result = result[result$nSites == 500 & result$nVisits == 1,]   
   
   Sum <- Summarize(RMSE_p ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
@@ -353,13 +353,12 @@ draw_plot <- function() {
   p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("max Y")
 
-  png("maxY-RMSE.png")
+  png("figures/maxY-RMSE.png")
   grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "nSites = 500 & nVisits == 1")
   dev.off()
   
-  # meanY = combined_result[combined_result$nSites == 500 & combined_result$nVisits == 1,] 
-  sub_result = combined_result[combined_result$nSites == 500 & combined_result$nVisits == 1,]
-  
+  # meanY vs RMSE (nSites = 500, nVisits = 1)
+  sub_result = result[result$nSites == 500 & result$nVisits == 1,]
   
   Sum <- Summarize(RMSE_p ~ groups, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
@@ -381,7 +380,7 @@ draw_plot <- function() {
   p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("mean Y")
 
-  png("meanY-RMSE.png")
+  png("figures/meanY-RMSE.png")
   grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T, top = "nSites = 500 & nVisits == 1")
   dev.off()    
   
