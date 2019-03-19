@@ -64,8 +64,15 @@ run_EM <- function() {
     coef_2 <- rep(0, k2 + 1)
 
     # Iterate until convergence
+    #conv1 <- rep(NA, 1000)
+    #conv2 <- rep(NA, 1000)
+    #iter = 1
     while (mean(abs(coef_1 - as.vector(model_1$coef))) > 0.001 | mean(abs(coef_2 - as.vector(model_2$coef))) > 0.001)
     {
+      #conv1[iter] = mean(abs(coef_1 - as.vector(model_1$coef)))
+      #conv2[iter] = mean(abs(coef_2 - as.vector(model_2$coef)))      
+      #iter = iter + 1
+      
       # E-step
       coef_1 <- as.vector(model_1$coef)
       coef_2 <- as.vector(model_2$coef)
@@ -84,6 +91,15 @@ run_EM <- function() {
       mu2_est <- as.vector(model_2$fitted)
       mu_est = mu1_est + mu2_est
     }
+    #png("EM/conv1.png")
+    #plot(conv1[1:(iter-1)], xlab="Iterations", ylab="Changes on coef_1" )
+    #lines(conv1[1:(iter-1)])
+    #dev.off()
+    #png("EM/conv2.png")
+    #plot(conv2[1:(iter-1)], xlab="Iterations", ylab="Changes on coef_2" )
+    #lines(conv2[1:(iter-1)])
+    #dev.off()
+    
     result[1] = sqrt(mean((coef_1 - betas_1)^2)) 
     result[2] = sqrt(mean((coef_2 - betas_2)^2)) 
     result[3] = sqrt(mean(((mu1_est - mu1) / mu1) ^ 2)) 
