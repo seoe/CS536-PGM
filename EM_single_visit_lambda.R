@@ -108,3 +108,53 @@ for (iter in 1:200) {
   write.table(t(coef_1), "EM/EM_coef_1.csv", col.names=F, row.names=F, sep=",", append=TRUE)
   write.table(t(coef_2), "EM/EM_coef_2.csv", col.names=F, row.names=F, sep=",", append=TRUE)
 }
+
+
+library(FSA)
+library(ggplot2)
+library(gridExtra)
+draw_plot <- function() {  
+  result = read.csv("EM/EM_results.csv", header=FALSE)
+  colnames(result) = c("RMSE_beta1", "RMSE_beta2", "RMSE_lambda1", "RMSE_lambda2", "RMSE_y1", "RMSE_y2", "maxY1", "maxY2", "meanY1", "meanY2")
+  print(max(result$maxY1)) # 211
+  print(max(result$maxY2)) # 1801
+  #print(max(result$meanY1))
+  #print(mean(result$meanY2))
+  result$Y1maxGroup <- cut(result$maxY1, breaks=c(0,20,40,60,80,100))
+  result$Y2maxGroup <- cut(result$maxY2, breaks=c(0,50,100,150,200))
+    
+  Sum <- Summarize(RMSE_beta1 ~ Y1maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p1 <- ggplot(Sum, aes(x=Y1maxGroup, y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_beta1") + xlab("max Y1")
+  
+  Sum <- Summarize(RMSE_lambda1 ~ Y1maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p2 <- ggplot(Sum, aes(x=Y1maxGroup, y=mean, group = 1)) + geom_line() + geom_point() + 
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + 
+  ylab("RMSE_lambda1") + xlab("max Y1")
+  
+  Sum <- Summarize(RMSE_y1 ~ Y1maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p3 <- ggplot(Sum, aes(x=Y1maxGroup, y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_y1") + xlab("max Y1")
+  
+  Sum <- Summarize(RMSE_beta2 ~ Y2maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p4 <- ggplot(Sum, aes(x=Y2maxGroup, y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_beta2") + xlab("max Y2")
+  
+  Sum <- Summarize(RMSE_lambda2 ~ Y2maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p5 <- ggplot(Sum, aes(x=Y2maxGroup, y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("max Y2")
+  
+  Sum <- Summarize(RMSE_y2 ~ Y2maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p6 <- ggplot(Sum, aes(x=Y2maxGroup, y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_y2") + xlab("max Y2")
+
+  png("figures/maxY12-RMSE.png")
+  grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 3, nrow = 2, respect = T)
+  dev.off()
+}

@@ -331,26 +331,29 @@ draw_plot <- function() {
   }
   
   # MaxY vs RMSE (nSites = 500, nVisits = 1)
-  sub_result = result[result$nSites == 500 & result$nVisits == 1,]   
+  result$YmaxGroup <- cut(result$maxY, breaks=c(0,100,200,300,400,500,600,700,800,Inf))
+  result$YmeanGroup <- cut(result$meanY, breaks=c(0,20,40,60,80,100,120,Inf))
   
-  Sum <- Summarize(RMSE_p ~ groups, data=sub_result)
+  sub_result = result[result$nSites == 200 & result$nVisits == 1,]   
+  
+  Sum <- Summarize(RMSE_p ~ YmaxGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p1 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p1 <- ggplot(Sum, aes(x=YmaxGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_p") + xlab("max Y")
   
-  Sum <- Summarize(RMSE_lambda1 ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_lambda1 ~ YmaxGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p2 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p2 <- ggplot(Sum, aes(x=YmaxGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda1") + xlab("max Y")
   
-  Sum <- Summarize(RMSE_fp ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_fp ~ YmaxGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p3 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p3 <- ggplot(Sum, aes(x=YmaxGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_fp") + xlab("max Y")
   
-  Sum <- Summarize(RMSE_lambda2 ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_lambda2 ~ YmaxGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p4 <- ggplot(Sum, aes(x=YmaxGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("max Y")
 
   png("figures/maxY-RMSE.png")
@@ -358,26 +361,26 @@ draw_plot <- function() {
   dev.off()
   
   # meanY vs RMSE (nSites = 500, nVisits = 1)
-  sub_result = result[result$nSites == 500 & result$nVisits == 1,]
+  sub_result = result[result$nSites == 200 & result$nVisits == 1,]
   
-  Sum <- Summarize(RMSE_p ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_p ~ YmeanGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p1 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p1 <- ggplot(Sum, aes(x=YmeanGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_p") + xlab("mean Y")
   
-  Sum <- Summarize(RMSE_lambda1 ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_lambda1 ~ YmeanGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p2 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p2 <- ggplot(Sum, aes(x=YmeanGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda1") + xlab("mean Y")
   
-  Sum <- Summarize(RMSE_fp ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_fp ~ YmeanGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p3 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p3 <- ggplot(Sum, aes(x=YmeanGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_fp") + xlab("mean Y")
   
-  Sum <- Summarize(RMSE_lambda2 ~ groups, data=sub_result)
+  Sum <- Summarize(RMSE_lambda2 ~ YmeanGroup, data=sub_result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p4 <- ggplot(Sum, aes(x=groups, y=mean)) + geom_line()+
+  p4 <- ggplot(Sum, aes(x=YmeanGroup, y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_lambda2") + xlab("mean Y")
 
   png("figures/meanY-RMSE.png")
