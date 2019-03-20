@@ -157,9 +157,17 @@ draw_plot <- function() {
         axis.title.y = element_text(size=15), 
         axis.title.x = element_text(size=15))
   
-  Sum <- Summarize(RMSE_beta2 ~ Y2maxGroup, data=result)
+  Sum <- Summarize(RMSE_y1 ~ Y2maxGroup, data=result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
   p3 <- ggplot(Sum, aes(x=factor(Y2maxGroup, level=level_order2), y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_y1") + xlab("max Y2") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.title.y = element_text(size=15), 
+        axis.title.x = element_text(size=15))
+        
+  Sum <- Summarize(RMSE_beta2 ~ Y2maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p4 <- ggplot(Sum, aes(x=factor(Y2maxGroup, level=level_order2), y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_beta2") + xlab("max Y2") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         axis.title.y = element_text(size=15), 
@@ -167,13 +175,21 @@ draw_plot <- function() {
   
   Sum <- Summarize(RMSE_lambda2 ~ Y2maxGroup, data=result)
   Sum$se <- Sum$sd / sqrt(Sum$n)
-  p4 <- ggplot(Sum, aes(x=factor(Y2maxGroup, level=level_order2), y=mean, group = 1)) + geom_line()+
+  p5 <- ggplot(Sum, aes(x=factor(Y2maxGroup, level=level_order2), y=mean, group = 1)) + geom_line()+
   geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("rRMSE_lambda2") + xlab("max Y2") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.title.y = element_text(size=15), 
+        axis.title.x = element_text(size=15))
+  
+  Sum <- Summarize(RMSE_y2 ~ Y2maxGroup, data=result)
+  Sum$se <- Sum$sd / sqrt(Sum$n)
+  p6 <- ggplot(Sum, aes(x=factor(Y2maxGroup, level=level_order2), y=mean, group = 1)) + geom_line()+
+  geom_pointrange(aes(ymin=mean-se, ymax=mean+se)) + ylab("RMSE_y2") + xlab("max Y2") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         axis.title.y = element_text(size=15), 
         axis.title.x = element_text(size=15))
 
   png("EM/maxY12-RMSE.png")
-  grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2, respect = T)
+  grid.arrange(p1, p4, p2, p5, p3, p6, ncol = 2, nrow = 3, respect = T)
   dev.off()
 }
